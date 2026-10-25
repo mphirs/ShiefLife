@@ -20,14 +20,31 @@ const CREAM = '#F7F8F2';
 const MUTED = '#7B857C';
 
 const categories = [
-  'Food', 'Drinks', 'Household', 'Beauty', 'Other', 'Fruits',
+  'Food', 'Drinks', 'Household', 'Beauty', 'Other',
 ];
 
 export default function AddProductScreen() {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Food');
   const [quantity, setQuantity] = useState('1');
-  const [expiryDate, setExpiryDate] = useState('');
+
+  // Convert a date into YYYY-MM-DD format.
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
+  // Store today's date as the initial expiry date.
+  const [expiryDate, setExpiryDate] = useState(
+    formatDate(new Date())
+  );
+
+  // Control whether the calendar is visible.
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const [reminders, setReminders] = useState<number[]>([3]);
   const [saving, setSaving] = useState(false);
 
