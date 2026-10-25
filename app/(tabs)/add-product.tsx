@@ -20,7 +20,7 @@ const CREAM = '#F7F8F2';
 const MUTED = '#7B857C';
 
 const categories = [
-  'Food', 'Drinks', 'Household', 'Beauty', 'Other',
+  'Food', 'Drinks', 'Household', 'Beauty', 'Other', 'Fruits',
 ];
 
 export default function AddProductScreen() {
