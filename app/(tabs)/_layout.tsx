@@ -1,4 +1,3 @@
-
 import { Tabs } from 'expo-router';
 
 const GREEN = '#237A4B';
