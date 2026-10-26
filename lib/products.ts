@@ -1,98 +1,63 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const STORAGE_KEY = 'shelflife_products';
+// REPLACES lib/products.ts
+// Same storage key as before ('shelflife_products'), so your existing saved products still load.
+import { daysBetween, toISODate, todayISO } from './dates';
+import { createCollection } from './store';
 
 export type ShelfProduct = {
   id: string;
+  updatedAt: number;
+  deleted?: boolean;
   name: string;
   category: string;
   quantity: number;
-  expiryDate: string;
-  reminderDays: number[];
-  createdAt: string;
+  expiryDate: string; // YYYY-MM-DD
+  createdAt: string; // ISO timestamp (used for the ring's "total shelf life")
   status: 'active';
+  price?: number; // total price paid (used for "money saved")
+  barcode?: string;
+  frozen?: boolean;
+  // Business mode
+  batchNo?: string;
+  supplier?: string;
+  unitCost?: number;
+  // Legacy fields from the old version
+  reminderDays?: number[];
   notificationIds?: string[];
 };
 
-// Load saved products from the phone.
-export async function getProducts(): Promise<ShelfProduct[]> {
-  try {
-    const savedProducts = await AsyncStorage.getItem(STORAGE_KEY);
+export const productsStore = createCollection<ShelfProduct>('shelflife_products');
 
-    if (!savedProducts) {
-      return [];
-    }
+export const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    return JSON.parse(savedProducts) as ShelfProduct[];
-  } catch (error) {
-    console.error('Error loading products:', error);
-    throw error;
-  }
-}
+export const getProducts = () => productsStore.list();
+export const addProduct = (p: Omit<ShelfProduct, 'updatedAt'>) => productsStore.upsert(p);
+export const removeProduct = (id: string) => productsStore.remove(id);
 
-// Save products to the phone.
-export async function saveProducts(
-  products: ShelfProduct[]
-): Promise<void> {
-  try {
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(products)
-    );
-  } catch (error) {
-    console.error('Error saving products:', error);
-    throw error;
-  }
-}
-
-// Calculate the number of days until expiry.
 export function daysUntilExpiry(expiryDate: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const expiry = new Date(`${expiryDate}T00:00:00`);
-  expiry.setHours(0, 0, 0, 0);
-
-  return Math.round(
-    (expiry.getTime() - today.getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
+  return daysBetween(todayISO(), expiryDate);
 }
 
-// Display a readable expiry message.
-export function expiryLabel(expiryDate: string): string {
-  const days = daysUntilExpiry(expiryDate);
+/** Total shelf life in days (creation -> expiry). Used to size the countdown ring. */
+export function shelfTotalDays(p: ShelfProduct): number {
+  const c = new Date(p.createdAt || Date.now());
+  const createdISO = toISODate(c);
+  return Math.max(1, daysBetween(createdISO, p.expiryDate));
+}
 
-  if (days < 0) {
-    return `Expired ${Math.abs(days)} day(s) ago`;
-  }
-
-  if (days === 0) {
-    return 'Expires today';
-  }
-
-  if (days === 1) {
-    return 'Expires tomorrow';
-  }
-
+// NOTE: these two now take the NUMBER OF DAYS (your old index.tsx already called them that way,
+// which was a bug because the old versions expected a date string).
+export function expiryLabel(days: number): string {
+  if (days < 0) return `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`;
+  if (days === 0) return 'Expires today';
+  if (days === 1) return 'Expires tomorrow';
   return `Expires in ${days} days`;
 }
 
-// Choose a colour based on expiry status.
-export function expiryColor(expiryDate: string): string {
-  const days = daysUntilExpiry(expiryDate);
-
-  if (days < 0) {
-    return '#DC2626';
-  }
-
-  if (days <= 3) {
-    return '#EA580C';
-  }
-
-  if (days <= 7) {
-    return '#CA8A04';
-  }
-
+export function expiryColor(days: number): string {
+  if (days < 0) return '#DC2626';
+  if (days <= 1) return '#DC2626';
+  if (days <= 3) return '#EA580C';
+  if (days <= 7) return '#CA8A04';
   return '#16A34A';
 }
+
