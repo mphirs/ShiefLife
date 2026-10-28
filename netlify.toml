@@ -1,0 +1,13 @@
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
